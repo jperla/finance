@@ -6,7 +6,7 @@ import os
 import urllib
 import datetime
 import time
-from itertools import izip, cycle
+from itertools import izip, cycle, count
 
 import couchdb
 
@@ -33,13 +33,23 @@ def index(req, p):
 @webargs.RemainingUrlableAppWrapper()
 def originals(req, p, ticker):
     number = req.params.get('num')
-    url, html = seclib.latest_10k_financials(ticker)
+    url, page = seclib.latest_10k_financials(ticker)
+    #TODO: jperla: functionalize highlight nums
     if number is not None:
         regex = '([^\d])(%s)([^\d])' % ',?'.join(number)
-        html = re.sub(regex,
+        page = re.sub(regex,
                       r'\1<span style="background-color:yellow;font-weight:bold;">\2</span>\3',
-                      html)
-    p(unicode(html))
+                      page)
+    indices = extracttable.tables_start_indices_from_page(page)
+    #TODO: jperla: functionalize insert anchors
+    for table_number,index in reversed(list(enumerate(indices))):
+        attrs = {'name':'table-%s' % table_number}
+        page = page[:index] + '\n' + html.a(attrs=attrs) + '\n' + page[index:]
+    p(template_originals(url, page))
+
+@webify.template()
+def template_originals(t, url, page):
+    t(unicode(page))
 
     
 @app.subapp()
@@ -48,7 +58,7 @@ def financials(req, p, ticker):
     url, html = seclib.latest_10k_financials(ticker)
     tables_html = extracttable.tables_html_from_page(html)
     tables = [extracttable.table_data_from_html(t) for t in tables_html]
-    tables = [t for t in tables if len(t) > 0]
+    #tables = [t for t in tables if len(t) > 0]
     p(template_financials(ticker, tables))
 
 @webify.template()
@@ -96,7 +106,7 @@ def partial_linked_financials_table(t, table, ticker, table_number):
                         attrs = {'style':
                                     'width:90px;text-align:right;v-align:top;'}
                         num = values[c]
-                        link = html.a(originals.url(ticker) + '?num=%s&table=%s' % (int(num), table_number), number_in_table(num), attrs={'class':'num'})
+                        link = html.a(originals.url(ticker) + '?num=%s#table-%s' % (int(num), table_number), number_in_table(num), attrs={'class':'num'})
                         t(html.td(link, attrs=attrs))
                     else:
                         t(html.td(u'&nbsp;'))

@@ -16,6 +16,10 @@ def tables_html_from_page(html):
     doc = pq(html)
     tables = doc('table')
     return [table for table in tables]
+
+def tables_start_indices_from_page(html):
+    indices = [t.start() for t in re.finditer('<table', html)]
+    return indices
     
 def table_data_from_html(table_html):
     head, body = split_head_and_body(table_html)

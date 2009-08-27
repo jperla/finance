@@ -27,7 +27,10 @@ def latest_report(ticker):
 @webify.urlable()
 def index(req, p):
     ticker = req.params.get('ticker', '')
-    p(partial_search_box(ticker))
+    if ticker == '':
+        p(partial_search_box(ticker))
+    else:
+        webify.http.redirect_page(p, financials.url(ticker))
 
 @app.subapp()
 @webargs.RemainingUrlableAppWrapper()
@@ -124,10 +127,9 @@ def number_in_table(num, places=0):
 @webify.template()
 def partial_search_box(t, ticker):
     with t(html.div()):
-        with t(html.form()):
+        with t(html.form(attrs={'action':index.url()})):
             t(html.input_text('ticker', ticker))
             t(html.input_submit())
-    
 
 # Middleware
 from webify.middleware import install_middleware, EvalException, SettingsMiddleware

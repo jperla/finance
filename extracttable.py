@@ -7,7 +7,7 @@ from pyquery import PyQuery as pq
 
 
 def main():
-    filename = 'SNS1.html' if len(sys.argv) < 2 else sys.argv[1]
+    filename = 'SNS1.html' if len(sys.argv) <= 1 else sys.argv[1]
     html = open(filename, 'r').read()
     tables = [table_data_from_html(t) for t in tables_html_from_page(html)]
     print tables
@@ -26,10 +26,11 @@ def table_data_from_html(table_html):
     return table
 
 def table_data(body_rows, columns, head_rows):
-    table = {}
+    table = []
     for row in body_rows:
         d = row_data(row, columns, head_rows)
-        table.update(d)
+        for key in d:
+            table.append((key, d[key]))
     return table
 
 def key_from_head_rows(head_rows, index):

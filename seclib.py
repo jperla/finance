@@ -54,8 +54,3 @@ def latest_10k_financials(ticker):
     fs = financials_from_10k(html)[0]
     return url, fs
 
-ticker = 'SNS'
-url, html = latest_10k(ticker)
-a,b = financials_from_10k(html)
-print a[:200], b[:200]
-

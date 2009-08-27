@@ -36,7 +36,6 @@ def originals(req, p, ticker):
     url, html = seclib.latest_10k_financials(ticker)
     if number is not None:
         regex = '([^\d])(%s)([^\d])' % ',?'.join(number)
-        print regex
         html = re.sub(regex,
                       r'\1<span style="background-color:yellow;font-weight:bold;">\2</span>\3',
                       html)

@@ -37,32 +37,51 @@ def index(req, p):
 def originals(req, p, ticker):
     number = req.params.get('num')
     url, page = seclib.latest_10k_financials(ticker)
-    #TODO: jperla: functionalize highlight nums
     if number is not None:
-        regex = '([^\d])(%s)([^\d])' % ',?'.join(number)
-        page = re.sub(regex,
-                      r'\1<span style="background-color:yellow;font-weight:bold;">\2</span>\3',
-                      page)
+        page = highlight_number_in_html(page, number)
     indices = extracttable.tables_start_indices_from_page(page)
-    #TODO: jperla: functionalize insert anchors
+    page = insert_anchors_into_html_at_indices(page, indices)
+    p(template_originals(ticker, url, page))
+
+def insert_anchors_into_html_at_indices(page, indices):
     for table_number,index in reversed(list(enumerate(indices))):
         attrs = {'name':'table-%s' % table_number}
         page = page[:index] + '\n' + html.a(attrs=attrs) + '\n' + page[index:]
-    p(template_originals(url, page))
+    return page
+
+def highlight_number_in_html(page, number):
+    regex = '([^\d])(%s)([^\d])' % ',?'.join(number)
+    page = re.sub(regex,
+        r'\1<span style="background-color:yellow;font-weight:bold;">\2</span>\3',
+        page)
+    return page
+
 
 @webify.template()
-def template_originals(t, url, page):
+def template_originals(t, ticker, url, page):
+    with t(html.div()):
+        t(html.h1('Originals SEC Financials in 10K for %s' % ticker))
+        t(u'Downloaded today from %s' % html.a(url, url))
+    t(html.hr())
     t(unicode(page))
 
     
 @app.subapp()
 @webargs.RemainingUrlableAppWrapper()
 def financials(req, p, ticker):
-    url, html = seclib.latest_10k_financials(ticker)
-    tables_html = extracttable.tables_html_from_page(html)
-    tables = [extracttable.table_data_from_html(t) for t in tables_html]
-    #tables = [t for t in tables if len(t) > 0]
-    p(template_financials(ticker, tables))
+    try:
+        url, page = seclib.latest_10k_financials(ticker)
+        #tables = [t for t in tables if len(t) > 0]
+    except:
+        p(u'Could not find this ticker on SEC website')
+    else:
+        try:
+            tables_html = extracttable.tables_html_from_page(page)
+            tables = [extracttable.table_data_from_html(t) for t in tables_html]
+        except:
+            p(u'Failed to parse financial data from page: %s' % html.a(url, url))
+        else:
+            p(template_financials(ticker, tables))
 
 @webify.template()
 def template_financials(t, ticker, tables):
